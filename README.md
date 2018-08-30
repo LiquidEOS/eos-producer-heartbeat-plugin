@@ -11,6 +11,8 @@ Contains version, head_block_num
 
 ## Blacklist Hashes - TBD
 
+## Local time and timezone - TBD
+
 ## Latency data from other BPs - TBD
 
 ## Sign a field with the real producer private key - TBD
