@@ -53,6 +53,8 @@ cleos set action permission PRODUCERACCT heartbeat123 heartbeat heartbeat
 ```
 
 # Enable plugin
+
+```
 plugin = eosio::producer_heartbeat_plugin
 heartbeat-period = 300
 heartbeat-signature-provider = HEARBEAT_PUB_KEY=KEY:HEARBEAT_PRIVATE_KEY
