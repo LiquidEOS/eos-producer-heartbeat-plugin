@@ -52,7 +52,7 @@ cleos set account permission PRODUCERACCT heartbeat '{"threshold":1,"keys":[{"ke
 cleos set action permission PRODUCERACCT heartbeat123 heartbeat heartbeat
 ```
 
-# Enable plugin
+# Enable plugin in config.ini
 
 ```
 plugin = eosio::producer_heartbeat_plugin
