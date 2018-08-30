@@ -1,6 +1,8 @@
 # EOSIO Block Producer Hearbeat Plugin by LiquidEOS (WIP)
 An heatbeat plugin to coordinate BP node status and metadata on-chain. 
+
 The goal is to show that a standby or active BP is ready for block production in terms version, blacklist sync, configuration, etc.
+
 This plugin is intended for both standby and active BPs. it is intended to run on the block producing node.
 
 # producer-heartbeat plugin features
