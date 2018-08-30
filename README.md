@@ -39,12 +39,6 @@ Contains version, head_block_num
   ```
 4. Build and install nodeos as usual. You could even just `cd <eosio-source-dir>/build` and then `sudo make install`
 
-# How to setup on your nodeos
-
-Enable this plugin using `--plugin` option to nodeos or in your config.ini. Use `nodeos --help` to see options used by this plugin.
-
-## Edit your nodeos config.ini (probably easier)
-
 # Setup permissions
 Use a dedicated key for this action.
 
@@ -53,8 +47,9 @@ cleos create key # HEARTBEAT_PRIVATE_KEY and HEARTBEAT_PUB_KEY
 cleos set account permission PRODUCERACCT heartbeat '{"threshold":1,"keys":[{"key":"HEARTBEAT_PUB_KEY","weight":1}]}' "active" -p PRODUCERACCT@active
 cleos set action permission PRODUCERACCT heartbeat123 heartbeat heartbeat
 ```
+# How to setup on your nodeos
 
-# Enable plugin in config.ini
+## Enable plugin in config.ini
 
 ```
 plugin = eosio::producer_heartbeat_plugin
