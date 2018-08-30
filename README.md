@@ -42,8 +42,6 @@ Contains version, head_block_num
 Enable this plugin using `--plugin` option to nodeos or in your config.ini. Use `nodeos --help` to see options used by this plugin.
 
 ## Edit your nodeos config.ini (probably easier)
-```
-
 
 # Setup permissions
 Use a dedicated key for this action.
