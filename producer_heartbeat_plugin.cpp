@@ -37,7 +37,6 @@ class producer_heartbeat_plugin_impl {
       chain::public_key_type _heartbeat_public_key;
       
       void send_heartbeat_transaction(){
-            ilog("heartbeat begin");
             auto& plugin = app().get_plugin<chain_plugin>();
             auto actor_blacklist_hash = 0;
             auto chainid = plugin.get_chain_id();
@@ -50,7 +49,6 @@ class producer_heartbeat_plugin_impl {
             abi_def abi;
             if (!abi_serializer::to_abi(account_obj->abi, abi)) 
                return;
-            ilog("heartbeat");
             // auto abi = account_obj->get_abi();
             abi_serializer eosio_serializer(abi, abi_serializer_max_time);
             signed_transaction trx;
@@ -72,8 +70,13 @@ class producer_heartbeat_plugin_impl {
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_heartbeat_private_key, chainid);
-            cc.push_transaction( std::make_shared<transaction_metadata>(trx) , trx.expiration);
-            ilog("heartbeat end");
+            auto trace = cc.push_transaction( std::make_shared<transaction_metadata>(trx) , trx.expiration);
+            if (trace->except) {
+               elog("heartbeat failed: ${err}", ("err", trace->except->to_detail_string()));
+            } else {
+               dlog("heartbeat success");
+            }
+
       }
       void start_timer( ) {
          timer->expires_from_now(timer_period);
@@ -103,7 +106,7 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
    cfg.add_options()
          ("heartbeat-period", bpo::value<int>()->default_value(300),
           "Heartbeat transaction period in seconds")
-         ("heartbeat-signature-provider", bpo::value<string>()->default_value("X:KEY=Y"),
+         ("heartbeat-signature-provider", bpo::value<string>()->default_value("X=KEY:Y"),
           "Heartbeat key provider")
          ("heartbeat-contract", bpo::value<string>()->default_value("heartbeat"),
           "Heartbeat Contract")
