@@ -33,8 +33,8 @@ class producer_heartbeat_plugin_impl {
       account_name heartbeat_contract = "";
       std::string heartbeat_permission = "";
       account_name producer_name;
-      fc::crypto::private_key _hearbeat_private_key;
-      chain::public_key_type _hearbeat_public_key;
+      fc::crypto::private_key _heartbeat_private_key;
+      chain::public_key_type _heartbeat_public_key;
       
       void send_heartbeat_transaction(){
             ilog("heartbeat begin");
@@ -56,18 +56,22 @@ class producer_heartbeat_plugin_impl {
             signed_transaction trx;
             action act;
             act.account = heartbeat_contract;
-            act.name = N(hearbeat);
+            act.name = N(heartbeat);
             act.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
-            act.data = eosio_serializer.variant_to_binary("create",mutable_variant_object()
+            auto metadata_obj = mutable_variant_object()
                ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("actor_blacklist_hash", eosio::utilities::common::itoh(actor_blacklist_hash))
-               ("head_block_num",  cc.fork_db_head_block_num()), 
+               ("head_block_num",  cc.fork_db_head_block_num());
+            auto metadata_json = fc::json::to_string( metadata_obj );
+            act.data = eosio_serializer.variant_to_binary("heartbeat",mutable_variant_object()
+               ("_user", producer_name)
+               ("_metadata_json", metadata_json), 
                abi_serializer_max_time);
             trx.actions.push_back(act);
             
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
-            trx.sign(_hearbeat_private_key, chainid);
+            trx.sign(_heartbeat_private_key, chainid);
             cc.push_transaction( std::make_shared<transaction_metadata>(trx) , trx.expiration);
             ilog("heartbeat end");
       }
@@ -152,9 +156,11 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
                
                
                if (spec_type_str == "KEY") {
-                  my->_hearbeat_private_key = fc::crypto::private_key(spec_data);
-                  my->_hearbeat_public_key = pubkey;   
+                  ilog("Loaded heartbeat key");
+                  my->_heartbeat_private_key = fc::crypto::private_key(spec_data);
+                  my->_heartbeat_public_key = pubkey;   
                } else if (spec_type_str == "KEOSD") {
+                  elog("KEOSD heartbeat key not supported");
                   // not supported
                }
    
