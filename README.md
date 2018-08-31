@@ -11,11 +11,16 @@ Contains version, head_block_num
 
 ## Blacklist Hashes - TBD
 
-## Local time and timezone - TBD
+## Local time, NTP time diff and timezone - TBD
 
 ## Latency data from other BPs - TBD
 
 ## Sign a field with the real producer private key - TBD
+
+## Random number generator - TBD
+
+## System resources - TBD
+Total system ram, Processor type, VM or not, etc.
 
 # Installation instructions
 
