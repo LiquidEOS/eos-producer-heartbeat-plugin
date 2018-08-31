@@ -3,6 +3,7 @@
  *  @copyright defined in eos/LICENSE.txt
  */
 #include <eosio/producer_heartbeat_plugin/producer_heartbeat_plugin.hpp>
+#include <eosio/chain/types.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <fc/variant_object.hpp>
 #include <fc/io/json.hpp>
@@ -29,25 +30,34 @@ class producer_heartbeat_plugin_impl {
    public:
       unique_ptr<boost::asio::steady_timer> timer;
       boost::asio::steady_timer::duration timer_period;
-      fc::microseconds _keosd_provider_timeout_us;
-      std::string heartbeat_contract;
-      std::string producer_name;
+      account_name heartbeat_contract = "";
+      std::string heartbeat_permission = "";
+      account_name producer_name;
       fc::crypto::private_key _hearbeat_private_key;
       chain::public_key_type _hearbeat_public_key;
       
       void send_heartbeat_transaction(){
+            ilog("heartbeat begin");
             auto& plugin = app().get_plugin<chain_plugin>();
             auto actor_blacklist_hash = 0;
             auto chainid = plugin.get_chain_id();
             auto abi_serializer_max_time = plugin.get_abi_serializer_max_time();
    
             controller& cc = plugin.chain();
-            abi_serializer eosio_serializer(cc.db().find<account_object, by_name>(heartbeat_contract)->get_abi(), abi_serializer_max_time);
+            auto* account_obj = cc.db().find<account_object, by_name>(heartbeat_contract);
+            if(account_obj == nullptr)
+               return;
+            abi_def abi;
+            if (!abi_serializer::to_abi(account_obj->abi, abi)) 
+               return;
+            ilog("heartbeat");
+            // auto abi = account_obj->get_abi();
+            abi_serializer eosio_serializer(abi, abi_serializer_max_time);
             signed_transaction trx;
             action act;
             act.account = heartbeat_contract;
             act.name = N(hearbeat);
-            act.authorization = vector<permission_level>{{producer_name,"hearbeat"}};
+            act.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
             act.data = eosio_serializer.variant_to_binary("create",mutable_variant_object()
                ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("actor_blacklist_hash", eosio::utilities::common::itoh(actor_blacklist_hash))
@@ -59,14 +69,18 @@ class producer_heartbeat_plugin_impl {
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_hearbeat_private_key, chainid);
             cc.push_transaction( std::make_shared<transaction_metadata>(trx) , trx.expiration);
-
+            ilog("heartbeat end");
       }
       void start_timer( ) {
          timer->expires_from_now(timer_period);
          timer->async_wait( [this](boost::system::error_code ec) {
                start_timer();
                if(!ec) {
-                  send_heartbeat_transaction();
+                  try{
+                     send_heartbeat_transaction();
+                  }
+                  FC_LOG_AND_DROP();
+                  
                }
                else {
                   elog( "Error from connection check monitor: ${m}",( "m", ec.message()));
@@ -75,20 +89,30 @@ class producer_heartbeat_plugin_impl {
       }      
 };
 
-producer_heartbeat_plugin::producer_heartbeat_plugin():my(new producer_heartbeat_plugin_impl()){}
+producer_heartbeat_plugin::producer_heartbeat_plugin():my(new producer_heartbeat_plugin_impl()){
+   my->timer.reset(new boost::asio::steady_timer( app().get_io_service()));
+
+}
 producer_heartbeat_plugin::~producer_heartbeat_plugin(){}
 
 void producer_heartbeat_plugin::set_program_options(options_description&, options_description& cfg) {
    cfg.add_options()
          ("heartbeat-period", bpo::value<int>()->default_value(300),
           "Heartbeat transaction period in seconds")
-         ("heartbeat-signature-provider", bpo::value<string>()->default_value(""),
+         ("heartbeat-signature-provider", bpo::value<string>()->default_value("X:KEY=Y"),
           "Heartbeat key provider")
          ("heartbeat-contract", bpo::value<string>()->default_value("heartbeat"),
-          "Heartbeat Contract")          
+          "Heartbeat Contract")
+         ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
+          "Heartbeat permission name")          
          ;
 }
 
+#define LOAD_VALUE_SET(options, name, container, type) \
+if( options.count(name) ) { \
+   const std::vector<std::string>& ops = options[name].as<std::vector<std::string>>(); \
+   std::copy(ops.begin(), ops.end(), std::inserter(container, container.end())); \
+}
 
 
 
@@ -100,13 +124,18 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       }
       if( options.count( "heartbeat-contract" )) {
          // Handle the option
-         my->heartbeat_contract = options.at( "heartbeat-contract" ).as<std::string>();
+         my->heartbeat_contract = options.at( "heartbeat-contract" ).as<string>();
+      }
+      if( options.count( "heartbeat-permission" )) {
+         // Handle the option
+         my->heartbeat_permission = options.at( "heartbeat-permission" ).as<string>();
       }
       if(options.count("producer-name")){
-         my->producer_name =  options["producer-name"].as<std::string>();
+         const std::vector<std::string>& ops = options["producer-name"].as<std::vector<std::string>>();
+         my->producer_name = ops[0];
       }
       if( options.count("heartbeat-signature-provider") ) {
-            const std::string key_spec_pair = options["heartbeat-signature-provider"].as<std::string>();
+            auto key_spec_pair = options["heartbeat-signature-provider"].as<std::string>();
             
             try {
                auto delim = key_spec_pair.find("=");
@@ -140,7 +169,7 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
 
 void producer_heartbeat_plugin::plugin_startup() {
    my->start_timer();
-
+   ilog("producer heartbeat plugin:  plugin_startup() begin");
 }
 
 void producer_heartbeat_plugin::plugin_shutdown() {
