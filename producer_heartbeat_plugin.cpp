@@ -30,9 +30,11 @@ class producer_heartbeat_plugin_impl {
    public:
       unique_ptr<boost::asio::steady_timer> timer;
       boost::asio::steady_timer::duration timer_period;
+      int interval;
       account_name heartbeat_contract = "";
       std::string heartbeat_permission = "";
       account_name producer_name;
+      
       fc::crypto::private_key _heartbeat_private_key;
       chain::public_key_type _heartbeat_public_key;
       
@@ -59,6 +61,7 @@ class producer_heartbeat_plugin_impl {
             auto metadata_obj = mutable_variant_object()
                ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("actor_blacklist_hash", eosio::utilities::common::itoh(actor_blacklist_hash))
+               ("interval", interval)
                ("head_block_num",  cc.fork_db_head_block_num());
             auto metadata_json = fc::json::to_string( metadata_obj );
             act.data = eosio_serializer.variant_to_binary("heartbeat",mutable_variant_object()
@@ -127,7 +130,8 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
    try {
       if( options.count( "heartbeat-period" )) {
          // Handle the option
-         my->timer_period = std::chrono::seconds( options.at( "heartbeat-period" ).as<int>());
+         my->interval = options.at( "heartbeat-period" ).as<int>();
+         my->timer_period = std::chrono::seconds( my->interval );
       }
       if( options.count( "heartbeat-contract" )) {
          // Handle the option
