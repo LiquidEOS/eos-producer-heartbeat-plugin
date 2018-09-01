@@ -93,7 +93,7 @@ class producer_heartbeat_plugin_impl {
                   
                }
                else {
-                  elog( "Error from connection check monitor: ${m}",( "m", ec.message()));
+                  elog( "Error from heart timer: ${m}",( "m", ec.message()));
                }
             });
       }      
