@@ -5,10 +5,11 @@ The goal is to show that a standby or active BP is ready for block production in
 
 This plugin is intended for both standby and active BPs. it is intended to run on the block producing node.
 
-monitor: http://heartbeat.liquideos.com/
+Contract deployed at: eosheartbeat (on mainnet and on the jungle testnet)
 
-code for monitor frontend and contract: https://github.com/bancorprotocol/eos-producer-heartbeat
+Monitor: http://heartbeat.liquideos.com/
 
+Repository for monitor frontend and contract: https://github.com/bancorprotocol/eos-producer-heartbeat
 
 # producer-heartbeat plugin features
 ## Periodic on-chain heartbeat
