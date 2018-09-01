@@ -58,7 +58,8 @@ class producer_heartbeat_plugin_impl {
             
             auto chainid = plugin.get_chain_id();
             auto abi_serializer_max_time = plugin.get_abi_serializer_max_time();
-   
+            // auto rw_api = plugin.get_read_write_api();
+
             controller& cc = plugin.chain();
             auto* account_obj = cc.db().find<account_object, by_name>(heartbeat_contract);
             if(account_obj == nullptr)
@@ -66,7 +67,6 @@ class producer_heartbeat_plugin_impl {
             abi_def abi;
             if (!abi_serializer::to_abi(account_obj->abi, abi)) 
                return;
-            // auto abi = account_obj->get_abi();
             abi_serializer eosio_serializer(abi, abi_serializer_max_time);
             signed_transaction trx;
             action act;
@@ -84,13 +84,14 @@ class producer_heartbeat_plugin_impl {
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_heartbeat_private_key, chainid);
-            auto trace = cc.push_transaction( std::make_shared<transaction_metadata>(trx) , trx.expiration);
-            if (trace->except) {
-               elog("heartbeat failed: ${err}", ("err", trace->except->to_detail_string()));
-            } else {
-               dlog("heartbeat success");
-            }
-
+            plugin.accept_transaction( packed_transaction(trx),[=](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
+                   if (result.contains<fc::exception_ptr>()) {
+                      
+                     elog("heartbeat failed: ${err}", ("err", result.get<fc::exception_ptr>()->to_detail_string()));
+                  } else {
+                     dlog("heartbeat success");
+                  }
+            });
       }
       void start_timer( ) {
          timer->expires_from_now(timer_period);
