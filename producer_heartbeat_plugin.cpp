@@ -97,7 +97,7 @@ class producer_heartbeat_plugin_impl {
                   
                }
                else {
-                  elog( "Error from heart timer: ${m}",( "m", ec.message()));
+                  elog( "Error from heartbeat timer: ${m}",( "m", ec.message()));
                }
             });
       }      
@@ -140,16 +140,6 @@ auto apply (const Container &cont, Function fun) {
     return ret;
 }
 
-// static bool stringCompare( const string &left, const string &right ){
-//    for( string::const_iterator lit = left.begin(), rit = right.begin(); lit != left.end() && rit != right.end(); ++lit, ++rit )
-//       if( tolower( *lit ) < tolower( *rit ) )
-//          return true;
-//       else if( tolower( *lit ) > tolower( *rit ) )
-//          return false;
-//    if( left.size() < right.size() )
-//       return true;
-//    return false;
-// }
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
    try {
       if( options.count( "heartbeat-period" )) {
