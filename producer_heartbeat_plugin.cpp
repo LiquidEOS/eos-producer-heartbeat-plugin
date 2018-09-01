@@ -35,16 +35,23 @@ class producer_heartbeat_plugin_impl {
       account_name producer_name;
       std::string actor_blacklist_hash = "";
       uint32_t actor_blacklist_count = 0;
-      
+      uint64_t state_db_size = 0;
+      uint64_t total_memory = 0;
+      std::string cpu_info = "";
+      std::string virtualization_type = "";
       fc::crypto::private_key _heartbeat_private_key;
       chain::public_key_type _heartbeat_public_key;
       mutable_variant_object collect_metadata(controller& cc){
          return mutable_variant_object()
-               ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
-               ("actor_blacklist_hash", actor_blacklist_hash)
-               ("actor_blacklist_count", actor_blacklist_count)
+               ("version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
+               ("abl_hash", actor_blacklist_hash)
+               ("abl_cnt", actor_blacklist_count)
                ("interval", interval)
-               ("head_block_num",  cc.fork_db_head_block_num());
+               ("cpu", cpu_info)
+               ("vtype", virtualization_type)
+               ("memory", total_memory)
+               ("db_size", state_db_size)
+               ("head",  cc.fork_db_head_block_num());
       }
       void send_heartbeat_transaction(){
             auto& plugin = app().get_plugin<chain_plugin>();
@@ -139,9 +146,64 @@ auto apply (const Container &cont, Function fun) {
     }
     return ret;
 }
+std::string get_cpuinfo() {
+    std::string token;
+    std::ifstream file("/proc/cpuinfo");
+    while(file >> token) {
+        if(token == "model") {
+            std::string mem;
+            if(!(file >> mem))
+               return 0;
+            if(mem == "name"){
+               if(!(file >> mem))
+                  return 0;
+               std::getline(file,mem);
+               return mem;
+            }
+        }
+        // ignore rest of the line
+        file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    return ""; // nothing found
+}
+
+std::string get_cpu_type(){
+   std::string token;
+   std::ifstream file("/sys/devices/virtual/dmi/id/product_name");
+   if(!file)
+      return "unknown";
+   file >> token;
+   if(token == "HVM"){
+      return "HVM";
+   }
+   if(token == "VMWare"){
+      return "VMWare";
+   }
+   return "Bare-metal";
+}
+unsigned long get_mem_total() {
+    std::string token;
+    std::ifstream file("/proc/meminfo");
+    while(file >> token) {
+        if(token == "MemTotal:") {
+            unsigned long mem;
+            if(file >> mem) {
+                return mem;
+            } else {
+                return 0;       
+            }
+        }
+        // ignore rest of the line
+        file.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    }
+    return 0; // nothing found
+}
 
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
    try {
+      my->total_memory = get_mem_total();
+      my->cpu_info = get_cpuinfo();
+      my->virtualization_type = get_cpu_type();
       if( options.count( "heartbeat-period" )) {
          // Handle the option
          my->interval = options.at( "heartbeat-period" ).as<int>();
@@ -159,6 +221,10 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
          const std::vector<std::string>& ops = options["producer-name"].as<std::vector<std::string>>();
          my->producer_name = ops[0];
       }
+      if(options.count("chain-state-db-size-mb")){
+         my->state_db_size = options["chain-state-db-size-mb"].as<uint64_t>();
+      }
+      
       if(options.count("actor-blacklist")){
          auto blacklist_actors = options["actor-blacklist"].as<std::vector<std::string>>();
          sort(blacklist_actors.begin(), blacklist_actors.end());

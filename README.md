@@ -9,18 +9,18 @@ This plugin is intended for both standby and active BPs. it is intended to run o
 ## Periodic on-chain heartbeat
 Contains version, head_block_num
 
-## Blacklist Hashes - TBD
+## Blacklist Hashes
+
+actor-blacklist hash
+
+## System resources 
+Total system ram, state_db_size, Processor type, VM or not, etc.
 
 ## Local time, NTP time diff and timezone - TBD
 
 ## Latency data from other BPs - TBD
 
 ## Sign a field with the real producer private key - TBD
-
-## Random number generator - TBD
-
-## System resources - TBD
-Total system ram, Processor type, VM or not, etc.
 
 # Installation instructions
 
