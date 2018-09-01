@@ -274,8 +274,12 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
 }
 
 void producer_heartbeat_plugin::plugin_startup() {
-   my->start_timer();
    ilog("producer heartbeat plugin:  plugin_startup() begin");
+   try{
+      my->send_heartbeat_transaction();
+   }
+   FC_LOG_AND_DROP();
+   my->start_timer();
 }
 
 void producer_heartbeat_plugin::plugin_shutdown() {
