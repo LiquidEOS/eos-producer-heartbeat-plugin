@@ -9,7 +9,6 @@
 #include <fc/io/json.hpp>
 #include <eosio/chain/abi_serializer.hpp>
 
-
 #include <eosio/utilities/common.hpp>
 
 // HACK TO EXPOSE LOGGER MAP
@@ -34,13 +33,22 @@ class producer_heartbeat_plugin_impl {
       account_name heartbeat_contract = "";
       std::string heartbeat_permission = "";
       account_name producer_name;
+      std::string actor_blacklist_hash = "";
+      uint32_t actor_blacklist_count = 0;
       
       fc::crypto::private_key _heartbeat_private_key;
       chain::public_key_type _heartbeat_public_key;
-      
+      mutable_variant_object collect_metadata(controller& cc){
+         return mutable_variant_object()
+               ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
+               ("actor_blacklist_hash", actor_blacklist_hash)
+               ("actor_blacklist_count", actor_blacklist_count)
+               ("interval", interval)
+               ("head_block_num",  cc.fork_db_head_block_num());
+      }
       void send_heartbeat_transaction(){
             auto& plugin = app().get_plugin<chain_plugin>();
-            auto actor_blacklist_hash = 0;
+            
             auto chainid = plugin.get_chain_id();
             auto abi_serializer_max_time = plugin.get_abi_serializer_max_time();
    
@@ -58,11 +66,7 @@ class producer_heartbeat_plugin_impl {
             act.account = heartbeat_contract;
             act.name = N(heartbeat);
             act.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
-            auto metadata_obj = mutable_variant_object()
-               ("server_version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
-               ("actor_blacklist_hash", eosio::utilities::common::itoh(actor_blacklist_hash))
-               ("interval", interval)
-               ("head_block_num",  cc.fork_db_head_block_num());
+            auto metadata_obj = collect_metadata(cc);
             auto metadata_json = fc::json::to_string( metadata_obj );
             act.data = eosio_serializer.variant_to_binary("heartbeat",mutable_variant_object()
                ("_user", producer_name)
@@ -125,7 +129,27 @@ if( options.count(name) ) { \
 }
 
 
+template <class Container, class Function>
+auto apply (const Container &cont, Function fun) {
+    std::vector< typename
+            std::result_of<Function(const typename Container::value_type&)>::type> ret;
+    ret.reserve(cont.size());
+    for (const auto &v : cont) {
+       ret.push_back(fun(v));
+    }
+    return ret;
+}
 
+// static bool stringCompare( const string &left, const string &right ){
+//    for( string::const_iterator lit = left.begin(), rit = right.begin(); lit != left.end() && rit != right.end(); ++lit, ++rit )
+//       if( tolower( *lit ) < tolower( *rit ) )
+//          return true;
+//       else if( tolower( *lit ) > tolower( *rit ) )
+//          return false;
+//    if( left.size() < right.size() )
+//       return true;
+//    return false;
+// }
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
    try {
       if( options.count( "heartbeat-period" )) {
@@ -145,6 +169,18 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
          const std::vector<std::string>& ops = options["producer-name"].as<std::vector<std::string>>();
          my->producer_name = ops[0];
       }
+      if(options.count("actor-blacklist")){
+         auto blacklist_actors = options["actor-blacklist"].as<std::vector<std::string>>();
+         sort(blacklist_actors.begin(), blacklist_actors.end());
+         auto output=apply(blacklist_actors,[](std::string element){
+             std::ostringstream stringStream;
+             stringStream << "actor-blacklist=" << element << "\n";
+             return stringStream.str();
+            });
+         std::string actor_blacklist_str = std::accumulate(output.begin(), output.end(), std::string(""));
+         my->actor_blacklist_hash = (string)fc::sha256::hash(actor_blacklist_str);
+         my->actor_blacklist_count = blacklist_actors.size();
+      }      
       if( options.count("heartbeat-signature-provider") ) {
             auto key_spec_pair = options["heartbeat-signature-provider"].as<std::string>();
             
