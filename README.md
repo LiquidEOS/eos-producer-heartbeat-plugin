@@ -50,8 +50,8 @@ Total system ram, state_db_size, Processor type, VM or not, etc.
   ```
 4. Build and install nodeos as usual. You could even just `cd <eosio-source-dir>/build` and then `sudo make install`
 
-# Setup permissions
-Use a dedicated key for this action.
+# Setup permissions 
+Use a dedicated key for this action. this is not mandatory on testnet, you can use your active key instead and set ```heartbeat-permission = active```
 
 ```
 cleos create key # HEARTBEAT_PRIVATE_KEY and HEARTBEAT_PUB_KEY 
