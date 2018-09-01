@@ -50,7 +50,7 @@ Use a dedicated key for this action.
 ```
 cleos create key # HEARTBEAT_PRIVATE_KEY and HEARTBEAT_PUB_KEY 
 cleos set account permission PRODUCERACCT heartbeat '{"threshold":1,"keys":[{"key":"HEARTBEAT_PUB_KEY","weight":1}]}' "active" -p PRODUCERACCT@active
-cleos set action permission PRODUCERACCT heartbeatacc heartbeat heartbeat
+cleos set action permission PRODUCERACCT eosheartbeat heartbeat heartbeat
 ```
 # How to setup on your nodeos
 
@@ -60,7 +60,7 @@ cleos set action permission PRODUCERACCT heartbeatacc heartbeat heartbeat
 plugin = eosio::producer_heartbeat_plugin
 heartbeat-period = 300
 heartbeat-signature-provider = HEARTBEAT_PUB_KEY=KEY:HEARTBEAT_PRIVATE_KEY
-heartbeat-contract = heartbeatacc
+heartbeat-contract = eosheartbeat
 heartbeat-permission = heartbeat
  ```
  

@@ -122,7 +122,7 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
           "Heartbeat transaction period in seconds")
          ("heartbeat-signature-provider", bpo::value<string>()->default_value("X=KEY:Y"),
           "Heartbeat key provider")
-         ("heartbeat-contract", bpo::value<string>()->default_value("heartbeat"),
+         ("heartbeat-contract", bpo::value<string>()->default_value("eosheartbeat"),
           "Heartbeat Contract")
          ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
           "Heartbeat permission name")          
