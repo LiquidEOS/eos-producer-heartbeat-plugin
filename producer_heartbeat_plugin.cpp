@@ -177,8 +177,8 @@ std::string get_cpu_type(){
    if(token == "HVM"){
       return "HVM";
    }
-   if(token == "VMWare"){
-      return "VMWare";
+   if(token == "VMware"){
+      return "VMware";
    }
    return "Bare-metal";
 }
