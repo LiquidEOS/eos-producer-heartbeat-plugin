@@ -1,9 +1,15 @@
-# EOSIO Block Producer Heartbeat Plugin by LiquidEOS (WIP)
+# EOSIO Block Producer Heartbeat Plugin by LiquidEOS
 Heartbeat plugin to coordinate BP node status and metadata on-chain. 
 
 The goal is to show that a standby or active BP is ready for block production in terms version, blacklist sync, configuration, etc.
 
 This plugin is intended for both standby and active BPs. it is intended to run on the block producing node.
+
+Contract deployed at: eosheartbeat (on mainnet and on the jungle testnet)
+
+Monitor: http://heartbeat.liquideos.com/
+
+Repository for monitor frontend and contract: https://github.com/bancorprotocol/eos-producer-heartbeat
 
 # producer-heartbeat plugin features
 ## Periodic on-chain heartbeat
@@ -44,8 +50,8 @@ Total system ram, state_db_size, Processor type, VM or not, etc.
   ```
 4. Build and install nodeos as usual. You could even just `cd <eosio-source-dir>/build` and then `sudo make install`
 
-# Setup permissions
-Use a dedicated key for this action.
+# Setup permissions 
+Use a dedicated key for this action. This step is not mandatory (especially on testnets), you can use your active key instead and set ```heartbeat-permission = active```
 
 ```
 cleos create key # HEARTBEAT_PRIVATE_KEY and HEARTBEAT_PUB_KEY 
