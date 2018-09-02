@@ -28,8 +28,12 @@ namespace eosio {
 class producer_heartbeat_plugin_impl {
    public:
       unique_ptr<boost::asio::steady_timer> timer;
+      unique_ptr<boost::asio::steady_timer> retry_timer;
       boost::asio::steady_timer::duration timer_period;
+      boost::asio::steady_timer::duration retry_timer_period;
       int interval;
+      int retry_max = 0;
+      uint8_t curr_retry = 0;
       account_name heartbeat_contract = "";
       std::string heartbeat_permission = "";
       account_name producer_name;
@@ -53,7 +57,7 @@ class producer_heartbeat_plugin_impl {
                ("db_size", state_db_size)
                ("head",  cc.fork_db_head_block_num());
       }
-      void send_heartbeat_transaction(){
+      void send_heartbeat_transaction(int retry = 0){
             auto& plugin = app().get_plugin<chain_plugin>();
             
             auto chainid = plugin.get_chain_id();
@@ -84,10 +88,19 @@ class producer_heartbeat_plugin_impl {
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_heartbeat_private_key, chainid);
+            dlog("heartbeat  retry: ${ret}", ("ret", retry));
+            curr_retry = retry;
             plugin.accept_transaction( packed_transaction(trx),[=](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                    if (result.contains<fc::exception_ptr>()) {
-                      
-                     elog("heartbeat failed: ${err}", ("err", result.get<fc::exception_ptr>()->to_detail_string()));
+                     if(curr_retry < retry_max - 1){
+                        elog("heartbeat failed - retry: ${err}", ("err", result.get<fc::exception_ptr>()->to_detail_string()));
+                        retry_timer->expires_from_now(retry_timer_period);
+                        retry_timer->async_wait( [this](boost::system::error_code ec) {
+                           send_heartbeat_transaction(curr_retry + 1);
+                        });
+                     }
+                     else
+                        elog("heartbeat failed: ${err}", ("err", result.get<fc::exception_ptr>()->to_detail_string()));
                   } else {
                      dlog("heartbeat success");
                   }
@@ -113,6 +126,7 @@ class producer_heartbeat_plugin_impl {
 
 producer_heartbeat_plugin::producer_heartbeat_plugin():my(new producer_heartbeat_plugin_impl()){
    my->timer.reset(new boost::asio::steady_timer( app().get_io_service()));
+   my->retry_timer.reset(new boost::asio::steady_timer( app().get_io_service()));
 
 }
 producer_heartbeat_plugin::~producer_heartbeat_plugin(){}
@@ -121,12 +135,16 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
    cfg.add_options()
          ("heartbeat-period", bpo::value<int>()->default_value(300),
           "Heartbeat transaction period in seconds")
+         ("heartbeat-retry-max", bpo::value<int>()->default_value(3),
+          "Heartbeat max retries")
+         ("heartbeat-retry-delay-seconds", bpo::value<int>()->default_value(10),
+          "Heartbeat retry delay")          
          ("heartbeat-signature-provider", bpo::value<string>()->default_value("X=KEY:Y"),
           "Heartbeat key provider")
          ("heartbeat-contract", bpo::value<string>()->default_value("eosheartbeat"),
           "Heartbeat Contract")
          ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
-          "Heartbeat permission name")          
+          "Heartbeat permission name")    
          ;
 }
 
@@ -206,16 +224,19 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       my->cpu_info = get_cpuinfo();
       my->virtualization_type = get_cpu_type();
       if( options.count( "heartbeat-period" )) {
-         // Handle the option
          my->interval = options.at( "heartbeat-period" ).as<int>();
          my->timer_period = std::chrono::seconds( my->interval );
       }
+      if( options.count( "heartbeat-retry-delay-seconds" )) {
+         my->retry_timer_period = std::chrono::seconds( options.at( "heartbeat-retry-delay-seconds" ).as<int>() );
+      }
+      if( options.count( "heartbeat-retry-max" )) {
+         my->retry_max = options.at( "heartbeat-retry-max" ).as<int>();
+      }
       if( options.count( "heartbeat-contract" )) {
-         // Handle the option
          my->heartbeat_contract = options.at( "heartbeat-contract" ).as<string>();
       }
       if( options.count( "heartbeat-permission" )) {
-         // Handle the option
          my->heartbeat_permission = options.at( "heartbeat-permission" ).as<string>();
       }
       if(options.count("producer-name")){
@@ -282,8 +303,6 @@ void producer_heartbeat_plugin::plugin_startup() {
    my->start_timer();
 }
 
-void producer_heartbeat_plugin::plugin_shutdown() {
-   // OK, that's enough magic
-}
+void producer_heartbeat_plugin::plugin_shutdown() {}
 
 }
