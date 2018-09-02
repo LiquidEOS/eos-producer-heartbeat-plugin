@@ -88,7 +88,6 @@ class producer_heartbeat_plugin_impl {
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_heartbeat_private_key, chainid);
-            dlog("heartbeat  retry: ${ret}", ("ret", retry));
             curr_retry = retry;
             plugin.accept_transaction( packed_transaction(trx),[=](const fc::static_variant<fc::exception_ptr, transaction_trace_ptr>& result){
                    if (result.contains<fc::exception_ptr>()) {
@@ -139,7 +138,7 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
           "Heartbeat max retries")
          ("heartbeat-retry-delay-seconds", bpo::value<int>()->default_value(10),
           "Heartbeat retry delay")          
-         ("heartbeat-signature-provider", bpo::value<string>()->default_value("X=KEY:Y"),
+         ("heartbeat-signature-provider", bpo::value<string>()->default_value("HEARTBEAT_PUB_KEY=KEY:HEARTBEAT_PRIVATE_KEY"),
           "Heartbeat key provider")
          ("heartbeat-contract", bpo::value<string>()->default_value("eosheartbeat"),
           "Heartbeat Contract")
