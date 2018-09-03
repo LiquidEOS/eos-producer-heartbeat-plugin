@@ -62,7 +62,6 @@ class producer_heartbeat_plugin_impl {
               latencies_sum_count[producer_name_str] = pair;
               latencies(producer_name_str, pair.second / pair.first);
            }
-           dlog("heartbeat data: ${total}", ("total", latencies_sum_count[producer_name_str].first));
         }
       }
       mutable_variant_object collect_metadata(controller& cc){
