@@ -11,12 +11,6 @@
 
 #include <eosio/utilities/common.hpp>
 
-// HACK TO EXPOSE LOGGER MAP
-
-namespace fc {
-   extern std::unordered_map<std::string,logger>& get_logger_map();
-}
-
 
 namespace eosio {
    using namespace eosio::chain;
@@ -31,6 +25,7 @@ class producer_heartbeat_plugin_impl {
       unique_ptr<boost::asio::steady_timer> retry_timer;
       boost::asio::steady_timer::duration timer_period;
       boost::asio::steady_timer::duration retry_timer_period;
+      fc::optional<boost::signals2::scoped_connection> accepted_block_conn;
       int interval;
       int retry_max = 0;
       uint8_t curr_retry = 0;
@@ -45,7 +40,23 @@ class producer_heartbeat_plugin_impl {
       std::string virtualization_type = "";
       fc::crypto::private_key _heartbeat_private_key;
       chain::public_key_type _heartbeat_public_key;
+      boost::mutex mtx;
+   	mutable_variant_object latencies;
+
+      void on_accepted_block(const block_state_ptr& block_state){
+        if(producer_name == block_state->block->producer)
+            return;
+        boost::mutex::scoped_lock lock(mtx, boost::try_to_lock);
+        if (lock)
+            latencies(block_state->block->producer.to_string(), (fc::time_point::now() - block_state->block->timestamp).count()/1000);
+      }
       mutable_variant_object collect_metadata(controller& cc){
+         boost::mutex::scoped_lock lock(mtx);
+         // get latencies table & clear table
+         auto latencies_to_use = latencies;
+         latencies = mutable_variant_object();
+         lock.unlock();
+
          return mutable_variant_object()
                ("version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("abl_hash", actor_blacklist_hash)
@@ -55,6 +66,7 @@ class producer_heartbeat_plugin_impl {
                ("vtype", virtualization_type)
                ("memory", total_memory)
                ("db_size", state_db_size)
+               ("latencies", latencies_to_use)
                ("head",  cc.fork_db_head_block_num());
       }
       void send_heartbeat_transaction(int retry = 0){
@@ -70,6 +82,8 @@ class producer_heartbeat_plugin_impl {
                return;
             abi_def abi;
             if (!abi_serializer::to_abi(account_obj->abi, abi)) 
+               return;
+            if(!producer_name)
                return;
             abi_serializer eosio_serializer(abi, abi_serializer_max_time);
             signed_transaction trx;
@@ -126,7 +140,7 @@ class producer_heartbeat_plugin_impl {
 producer_heartbeat_plugin::producer_heartbeat_plugin():my(new producer_heartbeat_plugin_impl()){
    my->timer.reset(new boost::asio::steady_timer( app().get_io_service()));
    my->retry_timer.reset(new boost::asio::steady_timer( app().get_io_service()));
-
+   my->latencies = mutable_variant_object();
 }
 producer_heartbeat_plugin::~producer_heartbeat_plugin(){}
 
@@ -296,12 +310,23 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
 void producer_heartbeat_plugin::plugin_startup() {
    ilog("producer heartbeat plugin:  plugin_startup() begin");
    try{
+      auto& chain = app().find_plugin<chain_plugin>()->chain();
+      my->accepted_block_conn.emplace(chain.accepted_block.connect(
+         [&](const block_state_ptr& b_state) {
+            my->on_accepted_block(b_state);
+      }));
       my->send_heartbeat_transaction();
    }
    FC_LOG_AND_DROP();
    my->start_timer();
 }
 
-void producer_heartbeat_plugin::plugin_shutdown() {}
+      
 
+
+
+void producer_heartbeat_plugin::plugin_shutdown() {
+   my->accepted_block_conn.reset();
+}
+   
 }
