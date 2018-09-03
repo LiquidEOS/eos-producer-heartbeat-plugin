@@ -42,19 +42,35 @@ class producer_heartbeat_plugin_impl {
       chain::public_key_type _heartbeat_public_key;
       boost::mutex mtx;
    	mutable_variant_object latencies;
+   	map<std::string,std::pair<int64_t, uint32_t>> latencies_sum_count;
 
       void on_accepted_block(const block_state_ptr& block_state){
         if(producer_name == block_state->block->producer)
             return;
         boost::mutex::scoped_lock lock(mtx, boost::try_to_lock);
-        if (lock)
-            latencies(block_state->block->producer.to_string(), (fc::time_point::now() - block_state->block->timestamp).count()/1000);
+        if (lock){
+           uint32_t latency = (fc::time_point::now() - block_state->block->timestamp).count()/1000;
+           auto producer_name_str = block_state->block->producer.to_string();
+           auto sumcount = latencies_sum_count.find(producer_name_str);
+           if(sumcount == latencies_sum_count.end()){
+               latencies_sum_count[producer_name_str] = std::pair<int64_t, uint32_t>(1, latency);
+               latencies(producer_name_str, latency);
+           }
+           else{
+              auto oldpair = sumcount->second;
+              auto pair = std::pair<int64_t, uint32_t>(oldpair.first + 1, oldpair.second + latency);
+              latencies_sum_count[producer_name_str] = pair;
+              latencies(producer_name_str, pair.second / pair.first);
+           }
+           dlog("heartbeat data: ${total}", ("total", latencies_sum_count[producer_name_str].first));
+        }
       }
       mutable_variant_object collect_metadata(controller& cc){
          boost::mutex::scoped_lock lock(mtx);
          // get latencies table & clear table
          auto latencies_to_use = latencies;
          latencies = mutable_variant_object();
+         latencies_sum_count.clear();
          lock.unlock();
 
          return mutable_variant_object()
