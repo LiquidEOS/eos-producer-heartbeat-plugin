@@ -22,9 +22,9 @@ actor-blacklist hash
 ## System resources 
 Total system ram, state_db_size, Processor type, VM or not, etc.
 
-## Local time, NTP time diff and timezone - TBD
+## Latency data from other BPs
 
-## Latency data from other BPs - TBD
+## Local time, NTP time diff and timezone - TBD
 
 ## Sign a field with the real producer private key - TBD
 
