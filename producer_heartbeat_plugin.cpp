@@ -116,7 +116,7 @@ class producer_heartbeat_plugin_impl {
             trx.actions.push_back(act);
 
 
-            auto* account_obj_bl = cc.db().find<account_object, by_name>(heartbeat_contract);
+            auto* account_obj_bl = cc.db().find<account_object, by_name>(heartbeat_blacklist_contract);
             if(account_obj_bl == nullptr)
                return;
             abi_def abi_bl;
