@@ -116,13 +116,13 @@ class producer_heartbeat_plugin_impl {
             trx.actions.push_back(act);
 
 
-            auto* account_obj = cc.db().find<account_object, by_name>(heartbeat_contract);
-            if(account_obj == nullptr)
+            auto* account_obj_bl = cc.db().find<account_object, by_name>(heartbeat_contract);
+            if(account_obj_bl == nullptr)
                return;
-            abi_def abi;
-            if (!abi_serializer::to_abi(account_obj->abi, abi)) 
+            abi_def abi_bl;
+            if (!abi_serializer::to_abi(account_obj_bl->abi, abi_bl)) 
                return;
-            abi_serializer eosio_serializer_bl(abi, abi_serializer_max_time);
+            abi_serializer eosio_serializer_bl(abi_bl, abi_serializer_max_time);
             action act_bl;
             if(heartbeat_blacklist_contract != ""){
                act_bl.account = heartbeat_blacklist_contract;
