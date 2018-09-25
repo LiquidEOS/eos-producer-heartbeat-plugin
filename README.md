@@ -11,6 +11,8 @@ Monitor: http://heartbeat.liquideos.com/
 
 Repository for monitor frontend and contract: https://github.com/bancorprotocol/eos-producer-heartbeat
 
+*Make sure you allocate enough CPU/NET to your account (a 100 EOS is enough). so can are still able to perform the daily claim*
+
 # producer-heartbeat plugin features
 ## Periodic on-chain heartbeat
 Contains version, head_block_num
