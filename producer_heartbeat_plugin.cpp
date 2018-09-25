@@ -196,7 +196,7 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
           "Heartbeat Contract")
          ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
           "Heartbeat permission name")    
-         ("heartbeat-blacklist-contract", bpo::value<string>()->default_value("blacklist"),
+         ("heartbeat-blacklist-contract", bpo::value<string>()->default_value("theblacklist"),
           "Heartbeat Blacklist Contract")
          ;
 }
