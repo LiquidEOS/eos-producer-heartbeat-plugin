@@ -57,7 +57,7 @@ Use a dedicated key for this action. This step is not mandatory (especially on t
 cleos create key # HEARTBEAT_PRIVATE_KEY and HEARTBEAT_PUB_KEY 
 cleos set account permission PRODUCERACCT heartbeat '{"threshold":1,"keys":[{"key":"HEARTBEAT_PUB_KEY","weight":1}]}' "active" -p PRODUCERACCT@active
 cleos set action permission PRODUCERACCT eosheartbeat heartbeat heartbeat
-cleos set action permission PRODUCERACCT theheartbeat sethash heartbeat
+cleos set action permission PRODUCERACCT theblacklist sethash heartbeat
 ```
 # How to setup on your nodeos
 
