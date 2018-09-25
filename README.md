@@ -19,6 +19,8 @@ Contains version, head_block_num
 
 actor-blacklist hash
 
+automatic submission to https://github.com/EOSLaoMao/theblacklist
+
 ## System resources 
 Total system ram, state_db_size, Processor type, VM or not, etc.
 
