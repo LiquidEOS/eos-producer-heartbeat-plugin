@@ -30,6 +30,7 @@ class producer_heartbeat_plugin_impl {
       int retry_max = 0;
       uint8_t curr_retry = 0;
       account_name heartbeat_contract = "";
+      account_name heartbeat_blacklist_contract = "";
       std::string heartbeat_permission = "";
       account_name producer_name;
       std::string actor_blacklist_hash = "";
@@ -113,6 +114,28 @@ class producer_heartbeat_plugin_impl {
                ("_metadata_json", metadata_json), 
                abi_serializer_max_time);
             trx.actions.push_back(act);
+
+
+            auto* account_obj = cc.db().find<account_object, by_name>(heartbeat_contract);
+            if(account_obj == nullptr)
+               return;
+            abi_def abi;
+            if (!abi_serializer::to_abi(account_obj->abi, abi)) 
+               return;
+            abi_serializer eosio_serializer_bl(abi, abi_serializer_max_time);
+            action act_bl;
+            if(heartbeat_blacklist_contract != ""){
+               act_bl.account = heartbeat_blacklist_contract;
+               act_bl.name = N(sethash);
+               act_bl.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
+               act_bl.data = eosio_serializer_bl.variant_to_binary("sethash", chain::mutable_variant_object()
+                  ("producer", producer_name)
+                  ("hash", actor_blacklist_hash),
+                  abi_serializer_max_time);
+               trx.actions.push_back(act_bl);
+
+            }
+            
             
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
@@ -173,6 +196,8 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
           "Heartbeat Contract")
          ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
           "Heartbeat permission name")    
+         ("heartbeat-blacklist-contract", bpo::value<string>()->default_value("blacklist"),
+          "Heartbeat Blacklist Contract")
          ;
 }
 
@@ -246,6 +271,13 @@ unsigned long get_mem_total() {
     return 0; // nothing found
 }
 
+template <typename T>
+void remove_duplicates(std::vector<T>& vec)
+{
+  std::sort(vec.begin(), vec.end());
+  vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
+
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
    try {
       my->total_memory = get_mem_total();
@@ -264,6 +296,9 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       if( options.count( "heartbeat-contract" )) {
          my->heartbeat_contract = options.at( "heartbeat-contract" ).as<string>();
       }
+      if( options.count( "heartbeat-blacklist-contract" )) {
+         my->heartbeat_blacklist_contract = options.at( "heartbeat-blacklist-contract" ).as<string>();
+      }
       if( options.count( "heartbeat-permission" )) {
          my->heartbeat_permission = options.at( "heartbeat-permission" ).as<string>();
       }
@@ -277,6 +312,7 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       
       if(options.count("actor-blacklist")){
          auto blacklist_actors = options["actor-blacklist"].as<std::vector<std::string>>();
+         remove_duplicates(blacklist_actors);
          sort(blacklist_actors.begin(), blacklist_actors.end());
          auto output=apply(blacklist_actors,[](std::string element){
              std::ostringstream stringStream;
