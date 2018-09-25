@@ -114,26 +114,27 @@ class producer_heartbeat_plugin_impl {
                ("_metadata_json", metadata_json), 
                abi_serializer_max_time);
             trx.actions.push_back(act);
-
-
+            
             auto* account_obj_bl = cc.db().find<account_object, by_name>(heartbeat_blacklist_contract);
-            if(account_obj_bl == nullptr)
-               return;
-            abi_def abi_bl;
-            if (!abi_serializer::to_abi(account_obj_bl->abi, abi_bl)) 
-               return;
-            abi_serializer eosio_serializer_bl(abi_bl, abi_serializer_max_time);
-            action act_bl;
-            if(heartbeat_blacklist_contract != ""){
-               act_bl.account = heartbeat_blacklist_contract;
-               act_bl.name = N(sethash);
-               act_bl.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
-               act_bl.data = eosio_serializer_bl.variant_to_binary("sethash", chain::mutable_variant_object()
-                  ("producer", producer_name)
-                  ("hash", actor_blacklist_hash),
-                  abi_serializer_max_time);
-               trx.actions.push_back(act_bl);
-
+            if(account_obj_bl != nullptr)
+            {
+               abi_def abi_bl;
+               if (abi_serializer::to_abi(account_obj_bl->abi, abi_bl))
+               {
+                  abi_serializer eosio_serializer_bl(abi_bl, abi_serializer_max_time);
+                  action act_bl;
+                  if(heartbeat_blacklist_contract != ""){
+                     act_bl.account = heartbeat_blacklist_contract;
+                     act_bl.name = N(sethash);
+                     act_bl.authorization = vector<permission_level>{{producer_name,heartbeat_permission}};
+                     act_bl.data = eosio_serializer_bl.variant_to_binary("sethash", chain::mutable_variant_object()
+                        ("producer", producer_name)
+                        ("hash", actor_blacklist_hash),
+                        abi_serializer_max_time);
+                     trx.actions.push_back(act_bl);
+      
+                  }
+               }
             }
             
             
