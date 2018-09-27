@@ -35,7 +35,7 @@ Total system ram, state_db_size, Processor type, VM or not, etc.
 # Installation instructions
 
 ## Requirements
-- Works on any EOSIO node that runs v1.1.4 and up.
+- Works on any EOSIO node that runs v1.2.0 and up.
 
 ## Building the plugin [Install on your nodeos server]
 1. run
