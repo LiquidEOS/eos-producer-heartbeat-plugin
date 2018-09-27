@@ -32,6 +32,7 @@ class producer_heartbeat_plugin_impl {
       account_name heartbeat_contract = "";
       account_name heartbeat_blacklist_contract = "";
       std::string heartbeat_permission = "";
+      std::string oncall = "telegram:nobody";
       account_name producer_name;
       std::string actor_blacklist_hash = "";
       uint32_t actor_blacklist_count = 0;
@@ -79,6 +80,7 @@ class producer_heartbeat_plugin_impl {
                ("abl_cnt", actor_blacklist_count)
                ("interval", interval)
                ("cpu", cpu_info)
+               ("oncall", oncall)
                ("vtype", virtualization_type)
                ("memory", total_memory)
                ("db_size", state_db_size)
@@ -185,7 +187,7 @@ producer_heartbeat_plugin::~producer_heartbeat_plugin(){}
 
 void producer_heartbeat_plugin::set_program_options(options_description&, options_description& cfg) {
    cfg.add_options()
-         ("heartbeat-period", bpo::value<int>()->default_value(300),
+         ("heartbeat-period", bpo::value<int>()->default_value(1800),
           "Heartbeat transaction period in seconds")
          ("heartbeat-retry-max", bpo::value<int>()->default_value(3),
           "Heartbeat max retries")
@@ -199,6 +201,9 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
           "Heartbeat permission name")    
          ("heartbeat-blacklist-contract", bpo::value<string>()->default_value("theblacklist"),
           "Heartbeat Blacklist Contract")
+         ("heartbeat-oncall", bpo::value<string>()->default_value("telegram:nobody"),
+          "Heartbeat Oncall Contacts")
+          
          ;
 }
 
@@ -309,6 +314,9 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       }
       if(options.count("chain-state-db-size-mb")){
          my->state_db_size = options["chain-state-db-size-mb"].as<uint64_t>();
+      }
+      if(options.count("heartbeat-oncall")){
+         my->oncall = options["heartbeat-oncall"].as<std::string>();
       }
       
       if(options.count("actor-blacklist")){

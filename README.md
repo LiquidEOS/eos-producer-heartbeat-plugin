@@ -73,7 +73,10 @@ heartbeat-period = 300
 heartbeat-signature-provider = HEARTBEAT_PUB_KEY=KEY:HEARTBEAT_PRIVATE_KEY
 heartbeat-contract = eosheartbeat
 heartbeat-permission = heartbeat
+heartbeat-oncall = telegram:johndoe
  ```
+
+Set heartbeat-oncall to your oncall contacts
  
 ## Check if the plugin has loaded
 - You should see an entry for producer_heartbeat_plugin in the logs when you restart nodeos. 
