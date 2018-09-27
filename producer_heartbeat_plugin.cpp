@@ -11,13 +11,43 @@
 
 #include <eosio/utilities/common.hpp>
 
+#include <algorithm> 
+#include <cctype>
+#include <locale>
+
+
 
 namespace eosio {
    using namespace eosio::chain;
    
    static appbase::abstract_plugin& _template_plugin = app().register_plugin<producer_heartbeat_plugin>();
 
+// https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
+// trim from start (in place)
+static inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
+        return !std::isspace(ch);
+    }));
+}
 
+// trim from end (in place)
+static inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+static inline void trim(std::string &s) {
+    ltrim(s);
+    rtrim(s);
+}
+
+// trim (copying)
+static inline std::string trim_copy(std::string s) {
+    trim(s);
+    return s;
+}
 
 class producer_heartbeat_plugin_impl {
    public:
@@ -290,7 +320,7 @@ void remove_duplicates(std::vector<T>& vec)
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
    try {
       my->total_memory = get_mem_total();
-      my->cpu_info = get_cpuinfo();
+      my->cpu_info = trim_copy(get_cpuinfo());
       my->virtualization_type = get_cpu_type();
       if( options.count( "heartbeat-period" )) {
          my->interval = options.at( "heartbeat-period" ).as<int>();
