@@ -251,7 +251,8 @@ std::string get_cpu_type(){
    if(!file)
       return "unknown";
    file >> token;
-   if(token == "HVM"){
+   
+   if(token == "HVM" || token == "Droplet"){
       return "HVM";
    }
    if(token == "VMware"){
