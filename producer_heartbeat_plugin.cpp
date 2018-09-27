@@ -105,7 +105,7 @@ class producer_heartbeat_plugin_impl {
          lock.unlock();
 
          return mutable_variant_object()
-               ("hb_version", "1.1")
+               ("hb_version", "1.1.01")
                ("version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("version_string", app().version_string())
                ("abl_hash", actor_blacklist_hash)
