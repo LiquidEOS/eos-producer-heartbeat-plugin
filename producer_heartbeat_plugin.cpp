@@ -187,7 +187,7 @@ producer_heartbeat_plugin::~producer_heartbeat_plugin(){}
 
 void producer_heartbeat_plugin::set_program_options(options_description&, options_description& cfg) {
    cfg.add_options()
-         ("heartbeat-period", bpo::value<int>()->default_value(1800),
+         ("heartbeat-period", bpo::value<int>()->default_value(1500),
           "Heartbeat transaction period in seconds")
          ("heartbeat-retry-max", bpo::value<int>()->default_value(3),
           "Heartbeat max retries")

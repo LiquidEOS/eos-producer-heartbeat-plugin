@@ -69,7 +69,7 @@ cleos set action permission PRODUCERACCT theblacklist sethash heartbeat
 
 ```
 plugin = eosio::producer_heartbeat_plugin
-heartbeat-period = 300
+heartbeat-period = 1500
 heartbeat-signature-provider = HEARTBEAT_PUB_KEY=KEY:HEARTBEAT_PRIVATE_KEY
 heartbeat-contract = eosheartbeat
 heartbeat-permission = heartbeat
