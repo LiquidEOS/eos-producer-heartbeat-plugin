@@ -97,15 +97,15 @@ class producer_heartbeat_plugin_impl {
         }
       }
       mutable_variant_object collect_metadata(controller& cc){
-         boost::mutex::scoped_lock lock(mtx);
-         // get latencies table & clear table
-         auto latencies_to_use = latencies;
-         latencies = mutable_variant_object();
-         latencies_sum_count.clear();
-         lock.unlock();
+         // boost::mutex::scoped_lock lock(mtx);
+         // // get latencies table & clear table
+         // auto latencies_to_use = latencies;
+         // latencies = mutable_variant_object();
+         // latencies_sum_count.clear();
+         // lock.unlock();
 
          return mutable_variant_object()
-               ("hb_version", "1.1.01")
+               ("hb_version", "1.1.02")
                ("version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
                ("version_string", app().version_string())
                ("abl_hash", actor_blacklist_hash)
@@ -116,7 +116,7 @@ class producer_heartbeat_plugin_impl {
                ("vtype", virtualization_type)
                ("memory", total_memory)
                ("db_size", state_db_size)
-               ("latencies", latencies_to_use)
+               // ("latencies", latencies_to_use)
                ("head",  cc.fork_db_head_block_num());
       }
       void send_heartbeat_transaction(int retry = 0){
@@ -403,11 +403,11 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
 void producer_heartbeat_plugin::plugin_startup() {
    ilog("producer heartbeat plugin:  plugin_startup() begin");
    try{
-      auto& chain = app().find_plugin<chain_plugin>()->chain();
-      my->accepted_block_conn.emplace(chain.accepted_block.connect(
-         [&](const block_state_ptr& b_state) {
-            my->on_accepted_block(b_state);
-      }));
+      // auto& chain = app().find_plugin<chain_plugin>()->chain();
+      // my->accepted_block_conn.emplace(chain.accepted_block.connect(
+      //    [&](const block_state_ptr& b_state) {
+      //       my->on_accepted_block(b_state);
+      // }));
       my->send_heartbeat_transaction();
    }
    FC_LOG_AND_DROP();
