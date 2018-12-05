@@ -44,7 +44,7 @@ Total system ram, state_db_size, Processor type, VM or not, etc.
   cd plugins
   git clone https://github.com/LiquidEOS/eos-producer-heartbeat-plugin.git producer_heartbeat_plugin
   cd producer_heartbeat_plugin
-  git checkout tags/v1.5.1
+  git checkout tags/v1.5.01
   cd ../..
   git apply plugins/producer_heartbeat_plugin/install.patch
   ./eosio_build.sh -s "EOS"
