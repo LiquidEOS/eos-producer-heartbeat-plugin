@@ -9,8 +9,6 @@
 #include <fc/io/json.hpp>
 #include <eosio/chain/abi_serializer.hpp>
 
-#include <eosio/utilities/common.hpp>
-
 #include <algorithm> 
 #include <cctype>
 #include <locale>
@@ -19,7 +17,14 @@
 
 namespace eosio {
    using namespace eosio::chain;
-   
+   template<typename I>
+   std::string itoh(I n, size_t hlen = sizeof(I)<<1) {
+      static const char* digits = "0123456789abcdef";
+      std::string r(hlen, '0');
+      for(size_t i = 0, j = (hlen - 1) * 4 ; i < hlen; ++i, j -= 4)
+         r[i] = digits[(n>>j) & 0x0f];
+      return r;
+   }
    static appbase::abstract_plugin& _template_plugin = app().register_plugin<producer_heartbeat_plugin>();
 
 // https://stackoverflow.com/questions/216823/whats-the-best-way-to-trim-stdstring
@@ -97,16 +102,16 @@ class producer_heartbeat_plugin_impl {
         }
       }
       mutable_variant_object collect_metadata(controller& cc){
-         // boost::mutex::scoped_lock lock(mtx);
-         // // get latencies table & clear table
-         // auto latencies_to_use = latencies;
-         // latencies = mutable_variant_object();
-         // latencies_sum_count.clear();
-         // lock.unlock();
+         boost::mutex::scoped_lock lock(mtx);
+         // get latencies table & clear table
+         auto latencies_to_use = latencies;
+         latencies = mutable_variant_object();
+         latencies_sum_count.clear();
+         lock.unlock();
 
          return mutable_variant_object()
-               ("hb_version", "1.1.02")
-               ("version", eosio::utilities::common::itoh(static_cast<uint32_t>(app().version())))
+               ("hb_version", "1.5.01")
+               ("version", itoh(static_cast<uint32_t>(app().version())))
                ("version_string", app().version_string())
                ("abl_hash", actor_blacklist_hash)
                ("abl_cnt", actor_blacklist_count)
@@ -116,7 +121,7 @@ class producer_heartbeat_plugin_impl {
                ("vtype", virtualization_type)
                ("memory", total_memory)
                ("db_size", state_db_size)
-               // ("latencies", latencies_to_use)
+               ("latencies", latencies_to_use)
                ("head",  cc.fork_db_head_block_num());
       }
       void send_heartbeat_transaction(int retry = 0){
@@ -403,11 +408,11 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
 void producer_heartbeat_plugin::plugin_startup() {
    ilog("producer heartbeat plugin:  plugin_startup() begin");
    try{
-      // auto& chain = app().find_plugin<chain_plugin>()->chain();
-      // my->accepted_block_conn.emplace(chain.accepted_block.connect(
-      //    [&](const block_state_ptr& b_state) {
-      //       my->on_accepted_block(b_state);
-      // }));
+      auto& chain = app().find_plugin<chain_plugin>()->chain();
+      my->accepted_block_conn.emplace(chain.accepted_block.connect(
+         [&](const block_state_ptr& b_state) {
+            my->on_accepted_block(b_state);
+      }));
       my->send_heartbeat_transaction();
    }
    FC_LOG_AND_DROP();

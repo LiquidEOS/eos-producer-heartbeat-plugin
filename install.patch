@@ -1,0 +1,25 @@
+diff --git a/plugins/CMakeLists.txt b/plugins/CMakeLists.txt
+index 8c93df9c4..927e1bc5e 100644
+--- a/plugins/CMakeLists.txt
++++ b/plugins/CMakeLists.txt
+@@ -20,6 +20,7 @@ add_subdirectory(mongo_db_plugin)
+ add_subdirectory(login_plugin)
+ add_subdirectory(test_control_plugin)
+ add_subdirectory(test_control_api_plugin)
++add_subdirectory(producer_heartbeat_plugin)
+ 
+ # Forward variables to top level so packaging picks them up
+ set(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} PARENT_SCOPE)
+diff --git a/programs/nodeos/CMakeLists.txt b/programs/nodeos/CMakeLists.txt
+index 6bddeacb8..8c9fafda5 100644
+--- a/programs/nodeos/CMakeLists.txt
++++ b/programs/nodeos/CMakeLists.txt
+@@ -73,6 +73,8 @@ endif()
+ 
+ include(additionalPlugins)
+ 
++target_link_libraries( ${NODE_EXECUTABLE_NAME} PRIVATE -Wl,${whole_archive_flag} producer_heartbeat_plugin -Wl,${no_whole_archive_flag})
++
+ copy_bin( ${NODE_EXECUTABLE_NAME} )
+ install( TARGETS
+    ${NODE_EXECUTABLE_NAME}

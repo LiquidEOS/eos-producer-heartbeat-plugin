@@ -35,24 +35,21 @@ Total system ram, state_db_size, Processor type, VM or not, etc.
 # Installation instructions
 
 ## Requirements
-- Works on any EOSIO node that runs v1.2.0 and up.
+- Works on any EOSIO node that runs v1.5.0 and up. (see older tags for older versions)
 
 ## Building the plugin [Install on your nodeos server]
 1. run
   ```
-  cd <eosio-source-dir>/plugins
-  git clone https://github.com/bancorprotocol/eos-producer-heartbeat-plugin.git producer_heartbeat_plugin
+  cd <eosio-source-dir>
+  cd plugins
+  git clone https://github.com/LiquidEOS/eos-producer-heartbeat-plugin.git producer_heartbeat_plugin
+  git checkout tags/v1.5.0
+  cd ..
+  git apply plugins/producer_heartbeat_plugin/install.patch
+  ./eosio_build.sh -s "EOS"
+  sudo ./eosio_install.sh
   ```
-2. Add the following line to `<eosio-source-dir>/plugins/CMakeLists.txt` with other `add_subdirectory` items
-  ```
-  add_subdirectory(producer_heartbeat_plugin)
-  ```
-
-3. Add the following line to the bottom of `<eosio-source-dir>/programs/nodeos/CMakeLists.txt`
-  ```
-  target_link_libraries( nodeos PRIVATE -Wl,${whole_archive_flag} producer_heartbeat_plugin -Wl,${no_whole_archive_flag})
-  ```
-4. Build and install nodeos as usual. You could even just `cd <eosio-source-dir>/build` and then `sudo make install`
+2. Build and install nodeos as usual.
 
 # Setup permissions 
 Use a dedicated key for this action. This step is not mandatory (especially on testnets), you can use your active key instead and set ```heartbeat-permission = active```
