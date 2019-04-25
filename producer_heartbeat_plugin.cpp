@@ -8,7 +8,8 @@
 #include <fc/variant_object.hpp>
 #include <fc/io/json.hpp>
 #include <eosio/chain/abi_serializer.hpp>
-
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <algorithm> 
 #include <cctype>
 #include <locale>
