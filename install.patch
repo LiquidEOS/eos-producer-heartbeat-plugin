@@ -1,25 +1,24 @@
 diff --git a/plugins/CMakeLists.txt b/plugins/CMakeLists.txt
-index 8c93df9c4..927e1bc5e 100644
+index e07a10c5b..c37551df4 100644
 --- a/plugins/CMakeLists.txt
 +++ b/plugins/CMakeLists.txt
-@@ -20,6 +20,7 @@ add_subdirectory(mongo_db_plugin)
- add_subdirectory(login_plugin)
- add_subdirectory(test_control_plugin)
- add_subdirectory(test_control_api_plugin)
+@@ -9,6 +9,7 @@ add_subdirectory(producer_api_plugin)
+ add_subdirectory(history_plugin)
+ add_subdirectory(history_api_plugin)
+ add_subdirectory(state_history_plugin)
 +add_subdirectory(producer_heartbeat_plugin)
  
- # Forward variables to top level so packaging picks them up
- set(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDS} PARENT_SCOPE)
+ add_subdirectory(wallet_plugin)
+ add_subdirectory(wallet_api_plugin)
 diff --git a/programs/nodeos/CMakeLists.txt b/programs/nodeos/CMakeLists.txt
-index 6bddeacb8..8c9fafda5 100644
+index d5fe8273e..0444fcbe5 100644
 --- a/programs/nodeos/CMakeLists.txt
 +++ b/programs/nodeos/CMakeLists.txt
-@@ -73,6 +73,8 @@ endif()
- 
- include(additionalPlugins)
- 
-+target_link_libraries( ${NODE_EXECUTABLE_NAME} PRIVATE -Wl,${whole_archive_flag} producer_heartbeat_plugin -Wl,${no_whole_archive_flag})
-+
- copy_bin( ${NODE_EXECUTABLE_NAME} )
- install( TARGETS
-    ${NODE_EXECUTABLE_NAME}
+@@ -61,6 +61,7 @@ target_link_libraries( ${NODE_EXECUTABLE_NAME}
+         PRIVATE -Wl,${whole_archive_flag} db_size_api_plugin         -Wl,${no_whole_archive_flag}
+         PRIVATE -Wl,${whole_archive_flag} producer_api_plugin        -Wl,${no_whole_archive_flag}
+         PRIVATE -Wl,${whole_archive_flag} test_control_plugin        -Wl,${no_whole_archive_flag}
++        PRIVATE -Wl,${whole_archive_flag} producer_heartbeat_plugin  -Wl,${no_whole_archive_flag}
+         PRIVATE -Wl,${whole_archive_flag} test_control_api_plugin    -Wl,${no_whole_archive_flag}
+         PRIVATE -Wl,${build_id_flag}
+         PRIVATE chain_plugin http_plugin producer_plugin http_client_plugin

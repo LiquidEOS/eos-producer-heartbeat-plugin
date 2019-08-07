@@ -10,7 +10,7 @@
 #include <eosio/chain/abi_serializer.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
-#include <algorithm> 
+#include <algorithm>
 #include <cctype>
 #include <locale>
 
@@ -111,7 +111,7 @@ class producer_heartbeat_plugin_impl {
          lock.unlock();
 
          return mutable_variant_object()
-               ("hb_version", "1.7.01")
+               ("hb_version", "1.8.1")
                ("version", itoh(static_cast<uint32_t>(app().version())))
                ("version_string", app().version_string())
                ("abl_hash", actor_blacklist_hash)
@@ -127,7 +127,7 @@ class producer_heartbeat_plugin_impl {
       }
       void send_heartbeat_transaction(int retry = 0){
             auto& plugin = app().get_plugin<chain_plugin>();
-            
+
             auto chainid = plugin.get_chain_id();
             auto abi_serializer_max_time = plugin.get_abi_serializer_max_time();
             // auto rw_api = plugin.get_read_write_api();
@@ -137,7 +137,7 @@ class producer_heartbeat_plugin_impl {
             if(account_obj == nullptr)
                return;
             abi_def abi;
-            if (!abi_serializer::to_abi(account_obj->abi, abi)) 
+            if (!abi_serializer::to_abi(account_obj->abi, abi))
                return;
             if(!producer_name)
                return;
@@ -151,10 +151,10 @@ class producer_heartbeat_plugin_impl {
             auto metadata_json = fc::json::to_string( metadata_obj );
             act.data = eosio_serializer.variant_to_binary("heartbeat",mutable_variant_object()
                ("_user", producer_name)
-               ("_metadata_json", metadata_json), 
+               ("_metadata_json", metadata_json),
                abi_serializer_max_time);
             trx.actions.push_back(act);
-            
+
             auto* account_obj_bl = cc.db().find<account_object, by_name>(heartbeat_blacklist_contract);
             if(account_obj_bl != nullptr)
             {
@@ -172,12 +172,12 @@ class producer_heartbeat_plugin_impl {
                         ("hash", actor_blacklist_hash),
                         abi_serializer_max_time);
                      trx.actions.push_back(act_bl);
-      
+
                   }
                }
             }
-            
-            
+
+
             trx.expiration = cc.head_block_time() + fc::seconds(30);
             trx.set_reference_block(cc.head_block_id());
             trx.sign(_heartbeat_private_key, chainid);
@@ -207,13 +207,13 @@ class producer_heartbeat_plugin_impl {
                      send_heartbeat_transaction();
                   }
                   FC_LOG_AND_DROP();
-                  
+
                }
                else {
                   elog( "Error from heartbeat timer: ${m}",( "m", ec.message()));
                }
             });
-      }      
+      }
 };
 
 producer_heartbeat_plugin::producer_heartbeat_plugin():my(new producer_heartbeat_plugin_impl()){
@@ -230,18 +230,18 @@ void producer_heartbeat_plugin::set_program_options(options_description&, option
          ("heartbeat-retry-max", bpo::value<int>()->default_value(3),
           "Heartbeat max retries")
          ("heartbeat-retry-delay-seconds", bpo::value<int>()->default_value(10),
-          "Heartbeat retry delay")          
+          "Heartbeat retry delay")
          ("heartbeat-signature-provider", bpo::value<string>()->default_value("HEARTBEAT_PUB_KEY=KEY:HEARTBEAT_PRIVATE_KEY"),
           "Heartbeat key provider")
          ("heartbeat-contract", bpo::value<string>()->default_value("eosheartbeat"),
           "Heartbeat Contract")
          ("heartbeat-permission", bpo::value<string>()->default_value("heartbeat"),
-          "Heartbeat permission name")    
+          "Heartbeat permission name")
          ("heartbeat-blacklist-contract", bpo::value<string>()->default_value("theblacklist"),
           "Heartbeat Blacklist Contract")
          ("heartbeat-oncall", bpo::value<string>()->default_value("telegram:nobody"),
           "Heartbeat Oncall Contacts")
-          
+
          ;
 }
 
@@ -251,17 +251,6 @@ if( options.count(name) ) { \
    std::copy(ops.begin(), ops.end(), std::inserter(container, container.end())); \
 }
 
-
-template <class Container, class Function>
-auto apply (const Container &cont, Function fun) {
-    std::vector< typename
-            std::result_of<Function(const typename Container::value_type&)>::type> ret;
-    ret.reserve(cont.size());
-    for (const auto &v : cont) {
-       ret.push_back(fun(v));
-    }
-    return ret;
-}
 std::string get_cpuinfo() {
     std::string token;
     std::ifstream file("/proc/cpuinfo");
@@ -289,7 +278,7 @@ std::string get_cpu_type(){
    if(!file)
       return "unknown";
    file >> token;
-   
+
    if(token == "HVM" || token == "Droplet"){
       return "HVM";
    }
@@ -307,7 +296,7 @@ unsigned long get_mem_total() {
             if(file >> mem) {
                 return mem;
             } else {
-                return 0;       
+                return 0;
             }
         }
         // ignore rest of the line
@@ -321,6 +310,12 @@ void remove_duplicates(std::vector<T>& vec)
 {
   std::sort(vec.begin(), vec.end());
   vec.erase(std::unique(vec.begin(), vec.end()), vec.end());
+}
+
+std::string build_blacklist_line(std::string element){
+   std::ostringstream stringStream;
+   stringStream << "actor-blacklist=" << element << "\n";
+   return stringStream.str();
 }
 
 void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) {
@@ -357,51 +352,54 @@ void producer_heartbeat_plugin::plugin_initialize(const variables_map& options) 
       if(options.count("heartbeat-oncall")){
          my->oncall = options["heartbeat-oncall"].as<std::string>();
       }
-      
+
       if(options.count("actor-blacklist")){
          auto blacklist_actors = options["actor-blacklist"].as<std::vector<std::string>>();
          remove_duplicates(blacklist_actors);
          sort(blacklist_actors.begin(), blacklist_actors.end());
-         auto output=apply(blacklist_actors,[](std::string element){
-             std::ostringstream stringStream;
-             stringStream << "actor-blacklist=" << element << "\n";
-             return stringStream.str();
-            });
+
+         std::vector<std::string> ret;
+         ret.reserve(blacklist_actors.size());
+         for (const auto &v : blacklist_actors) {
+            ret.push_back(build_blacklist_line(v));
+         }
+
+         auto output = ret;
          std::string actor_blacklist_str = std::accumulate(output.begin(), output.end(), std::string(""));
          my->actor_blacklist_hash = (string)fc::sha256::hash(actor_blacklist_str);
          my->actor_blacklist_count = blacklist_actors.size();
-      }      
+      }
       if( options.count("heartbeat-signature-provider") ) {
             auto key_spec_pair = options["heartbeat-signature-provider"].as<std::string>();
-            
+
             try {
                auto delim = key_spec_pair.find("=");
                EOS_ASSERT(delim != std::string::npos, eosio::chain::plugin_config_exception, "Missing \"=\" in the key spec pair");
                auto pub_key_str = key_spec_pair.substr(0, delim);
                auto spec_str = key_spec_pair.substr(delim + 1);
-   
+
                auto spec_delim = spec_str.find(":");
                EOS_ASSERT(spec_delim != std::string::npos, eosio::chain::plugin_config_exception, "Missing \":\" in the key spec pair");
                auto spec_type_str = spec_str.substr(0, spec_delim);
                auto spec_data = spec_str.substr(spec_delim + 1);
-   
+
                auto pubkey = public_key_type(pub_key_str);
-               
-               
+
+
                if (spec_type_str == "KEY") {
                   ilog("Loaded heartbeat key");
                   my->_heartbeat_private_key = fc::crypto::private_key(spec_data);
-                  my->_heartbeat_public_key = pubkey;   
+                  my->_heartbeat_public_key = pubkey;
                } else if (spec_type_str == "KEOSD") {
                   elog("KEOSD heartbeat key not supported");
                   // not supported
                }
-   
+
             } catch (...) {
                elog("Malformed signature provider: \"${val}\", ignoring!", ("val", key_spec_pair));
             }
          }
-         
+
    }
    FC_LOG_AND_RETHROW()
 }
@@ -420,12 +418,12 @@ void producer_heartbeat_plugin::plugin_startup() {
    my->start_timer();
 }
 
-      
+
 
 
 
 void producer_heartbeat_plugin::plugin_shutdown() {
    my->accepted_block_conn.reset();
 }
-   
+
 }
